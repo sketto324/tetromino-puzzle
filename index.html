@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テトロミノパズル</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>テトロミノパズル</h1>
+    <p>カラフルなブロックでパズルに挑戦！<br>10個のブロックを、下のボードにすきまなくピッタリはめよう。<br>ブロックはドラッグで移動、クリックで回転、右クリックで裏返しするよ。<br>置いたブロックをクリックすれば元にもどせます。</p>
+
+    <div id="game-container">
+        <div id="pieces-container">
+            <!-- JavaScriptでピースが生成されます -->
+        </div>
+        <div id="game-board">
+            <!-- JavaScriptでグリッドが生成されます -->
+        </div>
+    </div>
+
+    <button id="reset-button">リセット</button>
+    <div id="message-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

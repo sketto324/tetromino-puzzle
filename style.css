@@ -1,0 +1,154 @@
+:root {
+    --board-rows: 8;
+    --board-cols: 5;
+    --cell-size: 40px;
+    --border-color: #ccc;
+    --board-bg-color: #f0f0f0;
+    --piece-bg-color: #fff;
+    --piece-border-color: #999;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+body {
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f4f8; /* 少し青みがかった明るいグレー */
+    color: #555;
+}
+
+h1 {
+    color: #3a6ea5; /* テーマカラー */
+    font-weight: 700;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+p {
+    text-align: center;
+    max-width: 600px;
+    line-height: 1.6;
+    color: #667;
+}
+
+#game-container {
+    display: flex;
+    gap: 30px;
+    margin-top: 20px;
+    align-items: flex-start;
+}
+
+/* ゲームボード */
+#game-board {
+    display: grid;
+    grid-template-columns: repeat(var(--board-cols), var(--cell-size));
+    grid-template-rows: repeat(var(--board-rows), var(--cell-size));
+    width: calc(var(--board-cols) * var(--cell-size));
+    height: calc(var(--board-rows) * var(--cell-size));
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    background-color: #e6eaf0;
+}
+
+.grid-cell {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    box-sizing: border-box; /* 枠線を含めてサイズ計算 */
+    border: 1px solid #d8dde2;
+}
+
+/* ピースをドラッグした際のプレビュー表示 */
+.grid-cell.ghost-preview {
+    opacity: 0.4;
+}
+
+/* ピース置き場 */
+#pieces-container {
+    width: calc(var(--cell-size) * 4 * 0.8 * 2 + 40px); /* ピース2個分の幅 + gap + padding */
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    padding: 10px;
+    border: 2px dashed #cdd3da;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* 各ピース */
+.piece {
+    display: grid;
+    cursor: grab;
+    background-color: transparent; /* ピース下の長方形を消す */
+    /* ピースの形に沿った自然な影を適用 */
+    filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.2));
+}
+
+.piece.dragging {
+    cursor: grabbing;
+    opacity: 0.7;
+    /* ドラッグ中は影を少し濃くする */
+    filter: drop-shadow(4px 4px 5px rgba(0, 0, 0, 0.3));
+}
+
+.piece.placed {
+    visibility: hidden;
+}
+
+.mino {
+    width: calc(var(--cell-size) * 0.7);
+    height: calc(var(--cell-size) * 0.7);
+    margin: calc(var(--cell-size) * 0.05); /* 0.7 (幅) + 0.05*2 (左右マージン) = 0.8となり、ピースの枠に収まります */
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+/* ピースごとの色 (パステルカラー) */
+.I { background-color: #4dd0e1; } /* Bright Cyan */
+.O { background-color: #ffd54f; } /* Bright Yellow */
+.T { background-color: #ba68c8; } /* Bright Purple */
+.L { background-color: #ffb74d; } /* Bright Orange */
+.S { background-color: #81c784; } /* Bright Green */
+
+/* ボードに配置されたミノ */
+.placed-mino {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    box-sizing: border-box;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 4px;
+}
+
+/* ボタンとメッセージ */
+#reset-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background-color: #3a6ea5;
+    color: white;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+#reset-button:hover {
+    background-color: #325f91;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+#message-container {
+    margin-top: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #4caf50; /* 明るい成功メッセージ用の緑 */
+    height: 30px;
+}
