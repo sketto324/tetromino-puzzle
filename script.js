@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let boardState = [];
     let pieces = [];
     let draggedPiece = null; // ドラッグ中のピースを保持する変数
-    let lastTap = { time: 0, pieceId: null }; // ダブルタップ判定用
+    let lastPointerDown = { time: 0, id: null, timer: null }; // クリック/タップのタイミング管理用
 
     // ゲームの初期化
     function init() {
@@ -84,26 +84,26 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- イベントリスナー ---
         el.addEventListener('dragstart', handleDragStart);
         el.addEventListener('dragend', handleDragEnd);
-        el.addEventListener('touchstart', handleTouchStart, { passive: false });
+        
+        // PC: クリックで回転
+        el.addEventListener('click', (e) => {
+            // 意図しないイベント発火を防ぐ
+            if (e.pointerType === 'touch') return;
+            const pieceData = pieces.find(p => p.id == piece.id);
+            if (pieceData?.isPlaced) return;
+            rotatePiece(piece.id);
+        });
 
-        // クリックとダブルクリックの競合を防ぐ
-        let clickTimer = null;
-        el.addEventListener('click', () => {
-            clearTimeout(clickTimer);
-            clickTimer = setTimeout(() => {
-                // ピースが置かれていない場合のみ回転
-                if (!pieces.find(p => p.id == piece.id)?.isPlaced) {
-                    rotatePiece(piece.id);
-                }
-            }, 200);
+        // PC: 右クリックで反転
+        el.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const pieceData = pieces.find(p => p.id == piece.id);
+            if (pieceData?.isPlaced) return;
+            flipPiece(piece.id);
         });
-        el.addEventListener('dblclick', () => {
-            clearTimeout(clickTimer); // シングルクリックのタイマーをキャンセル
-            // ピースが置かれていない場合のみ反転
-            if (!pieces.find(p => p.id == piece.id)?.isPlaced) {
-                flipPiece(piece.id);
-            }
-        });
+
+        // Mobile: タッチ操作（タップで回転、ダブルタップで反転）
+        el.addEventListener('touchstart', handleTouchStart, { passive: false });
 
         return el;
     }
@@ -195,13 +195,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!pieceElement) return;
         const pieceId = pieceElement.dataset.id;
 
+        const pieceData = pieces.find(p => p.id == pieceId);
+        if (pieceData?.isPlaced) return;
+
         // --- ダブルタップ判定 ---
         const currentTime = e.timeStamp;
-        if (currentTime - lastTap.time < 300 && lastTap.pieceId === pieceId) {
+        if (currentTime - lastPointerDown.time < 300 && lastPointerDown.id === pieceId) {
             // ダブルタップを検出
+            clearTimeout(lastPointerDown.timer); // 保留中の回転をキャンセル
             flipPiece(pieceId);
-            lastTap = { time: 0, pieceId: null }; // 判定後にリセット
-            e.stopPropagation(); // 親要素へのイベント伝播を停止
+            lastPointerDown = { time: 0, id: null, timer: null }; // 判定後にリセット
             return; // ダブルタップ完了なので、ここで処理を終了
         }
         // --- ダブルタップ判定ここまで ---
@@ -220,7 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // 5px以上動いたらドラッグ開始とみなす
             if (!isDragging && (deltaX > 5 || deltaY > 5)) {
                 isDragging = true;
-                lastTap = { time: 0, pieceId: null }; // ドラッグ開始したらタップ情報をリセット
+                clearTimeout(lastPointerDown.timer); // ドラッグなのでタップではない
+                lastPointerDown = { time: 0, id: null, timer: null }; // タップ情報をリセット
                 pieceElement.classList.add('dragging');
                 
                 dragImage = pieceElement.cloneNode(true);
@@ -252,10 +256,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const elementUnder = document.elementFromPoint(endTouch.clientX, endTouch.clientY);
                 elementUnder?.dispatchEvent(new DragEvent('drop', { dataTransfer: new DataTransfer(), bubbles: true }));
             } else {
-                // ドラッグしていなければ、ただのタップ（回転）
-                rotatePiece(pieceId);
-                // 次のダブルタップ判定のために今回のタップ情報を記録
-                lastTap = { time: currentTime, pieceId: pieceId };
+                // シングルタップの可能性。タイマーをセット
+                const timer = setTimeout(() => { rotatePiece(pieceId); }, 250);
+                lastPointerDown = { time: currentTime, id: pieceId, timer: timer };
             }
             // 共通の後片付け処理
             handleDragEnd(endEvent); 
