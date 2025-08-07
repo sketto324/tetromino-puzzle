@@ -83,9 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- イベントリスナー ---
         el.addEventListener('dragstart', handleDragStart);
         el.addEventListener('dragend', handleDragEnd);
+        el.addEventListener('touchstart', handleTouchStart, { passive: false });
         el.addEventListener('click', () => rotatePiece(piece.id));
-        el.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
+        el.addEventListener('dblclick', (e) => {
             flipPiece(piece.id);
         });
 
@@ -172,6 +172,61 @@ document.addEventListener('DOMContentLoaded', () => {
         clearGhostPreview(); // ドラッグ終了時にプレビューを確実に消す
     }
 
+    // --- タッチ操作用のハンドラ ---
+    let touchMoveHandler = null;
+    let touchEndHandler = null;
+
+    function handleTouchStart(e) {
+        e.preventDefault(); // 画面のスクロールを防ぐ
+        const pieceElement = e.target.closest('.piece');
+        if (!pieceElement) return;
+
+        const pieceId = pieceElement.dataset.id;
+        draggedPiece = pieces.find(p => p.id == pieceId);
+
+        const dragImage = pieceElement.cloneNode(true);
+        dragImage.id = 'drag-image';
+        dragImage.style.position = 'absolute';
+        dragImage.style.zIndex = '1000'; // 最前面に表示
+        dragImage.style.pointerEvents = 'none'; // タッチイベントを拾わないようにする
+        document.body.appendChild(dragImage);
+
+        // タッチした指の位置に画像を移動させる
+        const touch = e.changedTouches[0];
+        const containerRect = pieceElement.getBoundingClientRect();
+        const xOffset = touch.clientX - containerRect.left;
+        const yOffset = touch.clientY - containerRect.top;
+
+        const moveImage = (x, y) => {
+            dragImage.style.left = `${x - xOffset}px`;
+            dragImage.style.top = `${y - yOffset}px`;
+        };
+        moveImage(touch.clientX, touch.clientY);
+
+        pieceElement.classList.add('dragging');
+
+        touchMoveHandler = (moveEvent) => {
+            const moveTouch = moveEvent.changedTouches[0];
+            moveImage(moveTouch.clientX, moveTouch.clientY);
+            // プレビュー表示
+            const elementUnder = document.elementFromPoint(moveTouch.clientX, moveTouch.clientY);
+            const cell = elementUnder?.closest('.grid-cell');
+            gameBoard.dispatchEvent(new MouseEvent('dragover', { clientX: moveTouch.clientX, clientY: moveTouch.clientY, bubbles: true }));
+        };
+
+        touchEndHandler = (endEvent) => {
+            const endTouch = endEvent.changedTouches[0];
+            const elementUnder = document.elementFromPoint(endTouch.clientX, endTouch.clientY);
+            elementUnder?.dispatchEvent(new DragEvent('drop', { dataTransfer: new DataTransfer(), bubbles: true }));
+            handleDragEnd(endEvent); // 後片付け
+            document.removeEventListener('touchmove', touchMoveHandler);
+            document.removeEventListener('touchend', touchEndHandler);
+        };
+
+        document.addEventListener('touchmove', touchMoveHandler);
+        document.addEventListener('touchend', touchEndHandler);
+    }
+
     function clearGhostPreview() {
         const ghostCells = document.querySelectorAll('.ghost-preview');
         ghostCells.forEach(cell => {
@@ -183,7 +238,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gameBoard.addEventListener('dragover', (e) => {
         e.preventDefault();
-        const cell = e.target.closest('.grid-cell');
+        // マウスイベントとタッチイベントの両方から呼び出される
+        const clientX = e.clientX ?? e.changedTouches?.[0].clientX;
+        const clientY = e.clientY ?? e.changedTouches?.[0].clientY;
+        const elementUnder = document.elementFromPoint(clientX, clientY);
+        const cell = elementUnder?.closest('.grid-cell');
+
         // ドラッグ中のピースがないか、カーソルがセル上にない場合は何もしない
         if (!cell || !draggedPiece) return;
 
@@ -225,7 +285,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const cell = e.target.closest('.grid-cell');
         if (!cell) return;
 
-        const pieceId = e.dataTransfer.getData('text/plain');
+        // マウスイベントとタッチイベントの両方に対応
+        const pieceId = e.dataTransfer?.getData('text/plain') || draggedPiece?.id;
+        if (pieceId === undefined) return;
+
         const piece = pieces.find(p => p.id == pieceId);
         const startRow = parseInt(cell.dataset.row);
         const startCol = parseInt(cell.dataset.col);
