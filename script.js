@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let boardState = [];
     let pieces = [];
     let draggedPiece = null; // ドラッグ中のピースを保持する変数
+    let lastTap = { time: 0, pieceId: null }; // ダブルタップ判定用
 
     // ゲームの初期化
     function init() {
@@ -84,9 +85,24 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('dragstart', handleDragStart);
         el.addEventListener('dragend', handleDragEnd);
         el.addEventListener('touchstart', handleTouchStart, { passive: false });
-        el.addEventListener('click', () => rotatePiece(piece.id));
-        el.addEventListener('dblclick', (e) => {
-            flipPiece(piece.id);
+
+        // クリックとダブルクリックの競合を防ぐ
+        let clickTimer = null;
+        el.addEventListener('click', () => {
+            clearTimeout(clickTimer);
+            clickTimer = setTimeout(() => {
+                // ピースが置かれていない場合のみ回転
+                if (!pieces.find(p => p.id == piece.id)?.isPlaced) {
+                    rotatePiece(piece.id);
+                }
+            }, 200);
+        });
+        el.addEventListener('dblclick', () => {
+            clearTimeout(clickTimer); // シングルクリックのタイマーをキャンセル
+            // ピースが置かれていない場合のみ反転
+            if (!pieces.find(p => p.id == piece.id)?.isPlaced) {
+                flipPiece(piece.id);
+            }
         });
 
         return el;
@@ -173,54 +189,76 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- タッチ操作用のハンドラ ---
-    let touchMoveHandler = null;
-    let touchEndHandler = null;
-
     function handleTouchStart(e) {
         e.preventDefault(); // 画面のスクロールを防ぐ
         const pieceElement = e.target.closest('.piece');
         if (!pieceElement) return;
-
         const pieceId = pieceElement.dataset.id;
+
+        // --- ダブルタップ判定 ---
+        const currentTime = e.timeStamp;
+        if (currentTime - lastTap.time < 300 && lastTap.pieceId === pieceId) {
+            // ダブルタップを検出
+            flipPiece(pieceId);
+            lastTap = { time: 0, pieceId: null }; // 判定後にリセット
+            e.stopPropagation(); // 親要素へのイベント伝播を停止
+            return; // ダブルタップ完了なので、ここで処理を終了
+        }
+        // --- ダブルタップ判定ここまで ---
+
+        let isDragging = false;
+        let dragImage = null;
         draggedPiece = pieces.find(p => p.id == pieceId);
 
-        const dragImage = pieceElement.cloneNode(true);
-        dragImage.id = 'drag-image';
-        dragImage.style.position = 'absolute';
-        dragImage.style.zIndex = '1000'; // 最前面に表示
-        dragImage.style.pointerEvents = 'none'; // タッチイベントを拾わないようにする
-        document.body.appendChild(dragImage);
+        const touchStartPoint = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
 
-        // タッチした指の位置に画像を移動させる
-        const touch = e.changedTouches[0];
-        const containerRect = pieceElement.getBoundingClientRect();
-        const xOffset = touch.clientX - containerRect.left;
-        const yOffset = touch.clientY - containerRect.top;
-
-        const moveImage = (x, y) => {
-            dragImage.style.left = `${x - xOffset}px`;
-            dragImage.style.top = `${y - yOffset}px`;
-        };
-        moveImage(touch.clientX, touch.clientY);
-
-        pieceElement.classList.add('dragging');
-
-        touchMoveHandler = (moveEvent) => {
+        const touchMoveHandler = (moveEvent) => {
             const moveTouch = moveEvent.changedTouches[0];
-            moveImage(moveTouch.clientX, moveTouch.clientY);
-            // プレビュー表示
-            const elementUnder = document.elementFromPoint(moveTouch.clientX, moveTouch.clientY);
-            const cell = elementUnder?.closest('.grid-cell');
-            gameBoard.dispatchEvent(new MouseEvent('dragover', { clientX: moveTouch.clientX, clientY: moveTouch.clientY, bubbles: true }));
+            const deltaX = Math.abs(moveTouch.clientX - touchStartPoint.x);
+            const deltaY = Math.abs(moveTouch.clientY - touchStartPoint.y);
+
+            // 5px以上動いたらドラッグ開始とみなす
+            if (!isDragging && (deltaX > 5 || deltaY > 5)) {
+                isDragging = true;
+                lastTap = { time: 0, pieceId: null }; // ドラッグ開始したらタップ情報をリセット
+                pieceElement.classList.add('dragging');
+                
+                dragImage = pieceElement.cloneNode(true);
+                dragImage.id = 'drag-image';
+                dragImage.style.position = 'absolute';
+                dragImage.style.zIndex = '1000';
+                dragImage.style.pointerEvents = 'none';
+                document.body.appendChild(dragImage);
+            }
+
+            if (isDragging) {
+                const containerRect = pieceElement.getBoundingClientRect();
+                const xOffset = touchStartPoint.x - containerRect.left;
+                const yOffset = touchStartPoint.y - containerRect.top;
+                
+                dragImage.style.left = `${moveTouch.clientX - xOffset}px`;
+                dragImage.style.top = `${moveTouch.clientY - yOffset}px`;
+
+                gameBoard.dispatchEvent(new MouseEvent('dragover', { clientX: moveTouch.clientX, clientY: moveTouch.clientY, bubbles: true }));
+            }
         };
 
-        touchEndHandler = (endEvent) => {
-            const endTouch = endEvent.changedTouches[0];
-            const elementUnder = document.elementFromPoint(endTouch.clientX, endTouch.clientY);
-            elementUnder?.dispatchEvent(new DragEvent('drop', { dataTransfer: new DataTransfer(), bubbles: true }));
-            handleDragEnd(endEvent); // 後片付け
+        const touchEndHandler = (endEvent) => {
             document.removeEventListener('touchmove', touchMoveHandler);
             document.removeEventListener('touchend', touchEndHandler);
+
+            if (isDragging) {
+                const endTouch = endEvent.changedTouches[0];
+                const elementUnder = document.elementFromPoint(endTouch.clientX, endTouch.clientY);
+                elementUnder?.dispatchEvent(new DragEvent('drop', { dataTransfer: new DataTransfer(), bubbles: true }));
+            } else {
+                // ドラッグしていなければ、ただのタップ（回転）
+                rotatePiece(pieceId);
+                // 次のダブルタップ判定のために今回のタップ情報を記録
+                lastTap = { time: currentTime, pieceId: pieceId };
+            }
+            // 共通の後片付け処理
+            handleDragEnd(endEvent); 
         };
 
         document.addEventListener('touchmove', touchMoveHandler);
