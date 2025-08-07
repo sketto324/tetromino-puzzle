@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const piecesContainer = document.getElementById('pieces-container');
     const resetButton = document.getElementById('reset-button');
     const messageContainer = document.getElementById('message-container');
+    const helpButton = document.getElementById('help-button');
+    const helpModal = document.getElementById('help-modal');
+    const closeButton = document.querySelector('.close-button');
 
     // テトロミノの定義 (形状, 色, ID)
     const TETROMINOS = [
@@ -230,8 +233,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 dragImage = pieceElement.cloneNode(true);
                 dragImage.id = 'drag-image';
                 dragImage.style.position = 'absolute';
+                dragImage.style.left = '0'; // transformの基点を左上に設定
+                dragImage.style.top = '0';
                 dragImage.style.zIndex = '1000';
                 dragImage.style.pointerEvents = 'none';
+                dragImage.style.filter = 'none'; // パフォーマンスのために影を消す
                 document.body.appendChild(dragImage);
             }
 
@@ -240,8 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const xOffset = touchStartPoint.x - containerRect.left;
                 const yOffset = touchStartPoint.y - containerRect.top;
                 
-                dragImage.style.left = `${moveTouch.clientX - xOffset}px`;
-                dragImage.style.top = `${moveTouch.clientY - yOffset}px`;
+                const x = moveTouch.clientX - xOffset;
+                const y = moveTouch.clientY - yOffset;
+                dragImage.style.transform = `translate(${x}px, ${y}px)`;
 
                 gameBoard.dispatchEvent(new MouseEvent('dragover', { clientX: moveTouch.clientX, clientY: moveTouch.clientY, bubbles: true }));
             }
@@ -445,6 +452,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // リセットボタンの処理
     resetButton.addEventListener('click', init);
     gameBoard.addEventListener('click', handleBoardClick);
+
+    // ヘルプモーダルの処理
+    helpButton.addEventListener('click', () => {
+        helpModal.style.display = 'flex';
+    });
+    closeButton.addEventListener('click', () => {
+        helpModal.style.display = 'none';
+    });
+    // モーダルの外側をクリックしたときに閉じる
+    helpModal.addEventListener('click', (e) => {
+        if (e.target === helpModal) {
+            helpModal.style.display = 'none';
+        }
+    });
 
     // ゲーム開始
     init();
