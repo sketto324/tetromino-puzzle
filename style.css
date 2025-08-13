@@ -213,6 +213,10 @@ p {
         flex-direction: column; /* 縦並びに変更 */
         align-items: center;
     }
+    /* 盤面を上、ピース置き場を下に */
+    #game-board { order: 0; }
+    #pieces-container { order: 1; }
+    #pieces-container { margin-top: 12px; }
     h1 { font-size: 2em; }
     #instructions-desktop {
         display: none; /* スマホでは説明文を非表示 */
