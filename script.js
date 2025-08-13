@@ -229,8 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearTimeout(lastPointerDown.timer); // ドラッグなのでタップではない
                 lastPointerDown = { time: 0, id: null, timer: null }; // タップ情報をリセット
                 pieceElement.classList.add('dragging');
-                // ドラッグ中はページスクロールを抑止
-                document.body.style.overflow = 'hidden';
                 
                 dragImage = pieceElement.cloneNode(true);
                 dragImage.id = 'drag-image';
@@ -249,9 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const yOffset = touchStartPoint.y - containerRect.top;
                 
                 const x = moveTouch.clientX - xOffset;
-                // 指で隠れにくくするため、少し上にオフセット
-                const fingerOffset = 20; // px
-                const y = moveTouch.clientY - yOffset - fingerOffset;
+                const y = moveTouch.clientY - yOffset;
                 dragImage.style.transform = `translate(${x}px, ${y}px)`;
 
                 gameBoard.dispatchEvent(new MouseEvent('dragover', { clientX: moveTouch.clientX, clientY: moveTouch.clientY, bubbles: true }));
@@ -273,8 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // 共通の後片付け処理
             handleDragEnd(endEvent); 
-            // スクロール抑止を解除
-            document.body.style.overflow = '';
         };
 
         document.addEventListener('touchmove', touchMoveHandler);

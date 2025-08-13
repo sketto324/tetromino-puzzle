@@ -17,8 +17,6 @@ body {
     justify-content: center;
     background-color: #f0f4f8; /* 少し青みがかった明るいグレー */
     color: #555;
-    min-height: 100svh;
-    overscroll-behavior: contain;
 }
 
 h1 {
@@ -70,7 +68,7 @@ p {
 
 /* ピース置き場 */
 #pieces-container {
-    width: calc(var(--cell-size) * 4 * 0.8 * 2 + 40px); /* デフォルト: PC向け (ピース2個分の幅 + gap + padding) */
+    width: calc(var(--cell-size) * 4 * 0.8 * 2 + 40px); /* ピース2個分の幅 + gap + padding */
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
@@ -153,97 +151,6 @@ p {
     font-weight: bold;
     color: #4caf50; /* 明るい成功メッセージ用の緑 */
     height: 30px;
-}
-
-/* タッチ最適化（スクロール誤動作を抑える） */
-#game-board,
-.piece {
-    touch-action: none;
-}
-
-/* ===== スマホ最適化（ボトムシート＋自動サイズ調整） ===== */
-@media (max-width: 768px) {
-    :root {
-        /* ボトムシートの高さを端末に応じて調整 */
-        --sheet-height: clamp(96px, 28vh, 180px);
-    }
-
-    body {
-        /* ボトムシートと重ならないよう下余白を確保（iOSセーフエリア考慮） */
-        padding-bottom: calc(var(--sheet-height) + env(safe-area-inset-bottom, 0px));
-    }
-
-    h1 {
-        font-size: 1.6em;
-        margin: 12px 0 4px;
-    }
-
-    /* 説明文はヘルプに集約（モバイルは非表示） */
-    #instructions-desktop {
-        display: none;
-    }
-
-    /* ヘルプボタンはモバイルで表示 */
-    #help-button {
-        display: block;
-    }
-
-    /* 全体レイアウトは縦並びにして、盤面を中央に */
-    #game-container {
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-        width: 100%;
-    }
-
-    /* 盤面サイズは画面にフィットするようセルサイズを自動計算 */
-    /* 横幅と縦幅（ボトムシートを除く）の両制約を満たす最小値を採用 */
-    :root {
-        --cell-size: min(
-            calc((100vw - 32px) / var(--board-cols)),
-            calc((100svh - var(--sheet-height) - 140px) / var(--board-rows))
-        );
-    }
-
-    #game-board {
-        margin: 0 auto;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.12);
-    }
-
-    /* ピース置き場をボトムシート化（横スクロール） */
-    #pieces-container {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: var(--sheet-height);
-        width: 100%;
-        box-sizing: border-box;
-        display: grid;
-        grid-auto-flow: column;
-        grid-auto-columns: max-content;
-        align-items: center;
-        justify-content: start;
-        gap: 12px;
-        padding: 12px calc(12px + env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) calc(12px + env(safe-area-inset-left, 0px));
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-
-        border: 0;
-        border-top: 1px solid #e3e7ee;
-        border-radius: 12px 12px 0 0;
-        background: rgba(255,255,255,0.95);
-        backdrop-filter: saturate(1.1) blur(6px);
-        box-shadow: 0 -6px 18px rgba(0,0,0,0.08);
-    }
-
-    /* モバイルのピースは横並び前提。掴みやすいよう少し大きめに */
-    .mino {
-        width: calc(var(--cell-size) * 0.75);
-        height: calc(var(--cell-size) * 0.75);
-        margin: calc(var(--cell-size) * 0.06);
-    }
 }
 
 /* --- ヘルプ機能 --- */
